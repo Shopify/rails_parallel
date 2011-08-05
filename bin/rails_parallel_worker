@@ -1,0 +1,23 @@
+#!/usr/bin/env ruby
+
+ENV['RAILS_ENV'] = 'test'
+
+begin
+  puts 'RP: Loading RailsParallel.'
+  $LOAD_PATH << 'lib'
+  require 'rails_parallel/runner'
+  require 'rails_parallel/object_socket'
+
+  socket = ObjectSocket.new(IO.for_fd(ARGV.first.to_i))
+  socket << :started
+
+  puts 'RP: Loading Rails.'
+  require "#{ENV['RAILS_PARALLEL_ROOT']}/config/environment"
+
+  puts 'RP: Ready for testing.'
+  RailsParallel::Runner.launch(socket)
+  puts 'RP: Shutting down.'
+  Kernel.exit!(0)
+rescue Interrupt, SignalException
+  Kernel.exit!(1)
+end
