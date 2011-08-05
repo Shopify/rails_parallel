@@ -21,12 +21,12 @@ You'll want to add a lib/tasks/rails_parallel.rake with at least the following:
       # Run this task if you have non-test tasks to run first and you want the
       # RailsParallel worker to start loading your environment earlier.
       task :launch do
-	RailsParallel::Rake.launch
+        RailsParallel::Rake.launch
       end
 
       # RailsParallel runs this if it needs to reload the DB.
       namespace :db do
-	task :setup => ['db:drop', 'db:create', 'db:schema:load']
+        task :setup => ['db:drop', 'db:create', 'db:schema:load']
       end
     end
 
