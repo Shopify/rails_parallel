@@ -71,7 +71,7 @@ module RailsParallel
     end
 
     def parse_options(ruby_opts)
-      ruby_opts.collect do |opt|
+      ruby_opts.flatten.collect do |opt|
         case opt
         when /^-r/
           [:require, $']
