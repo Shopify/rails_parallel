@@ -18,6 +18,10 @@ module RailsParallel
       instance.run(name, ruby_opts, files)
     end
 
+    def self.load_current_db
+      instance.load_schema
+    end
+
     def launch
       return if @pid
       at_exit { shutdown }
@@ -61,6 +65,11 @@ module RailsParallel
         Process.waitpid(@pid)
         @pid = nil
       end
+    end
+
+    def load_schema
+      Runner::Schema.new(schema_file).load_main_db
+      puts "RP: Loaded #{Rails.env} schema."
     end
 
     private
