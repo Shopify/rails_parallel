@@ -2,6 +2,7 @@ require 'rake/testtask'
 require 'fcntl'
 
 require 'rails_parallel/object_socket'
+require 'rails_parallel/schema'
 
 module RailsParallel
   class Rake
@@ -68,7 +69,7 @@ module RailsParallel
     end
 
     def load_schema
-      Runner::Schema.new(schema_file).load_main_db
+      Schema.new(schema_file).load_main_db
       puts "RP: Loaded #{Rails.env} schema."
     end
 

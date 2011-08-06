@@ -1,8 +1,8 @@
 require 'rails_parallel/forks'
 require 'rails_parallel/collector'
 require 'rails_parallel/timings'
+require 'rails_parallel/schema'
 require 'rails_parallel/runner/child'
-require 'rails_parallel/runner/schema'
 require 'rails_parallel/runner/test_runner'
 
 class Test::Unit::TestResult
