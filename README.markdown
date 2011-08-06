@@ -24,9 +24,15 @@ You'll want to add a lib/tasks/rails_parallel.rake with at least the following:
         RailsParallel::Rake.launch
       end
 
-      # RailsParallel runs this if it needs to reload the DB.
       namespace :db do
+	# RailsParallel runs this if it needs to reload the DB.
         task :setup => ['db:drop', 'db:create', 'db:schema:load']
+
+        # RailsParallel normally doesn't mess with your current DB,
+	# only the 'test' env DB.  Run this to load it if required.
+        task :load => :environment do
+          RailsParallel::Rake.load_current_db
+        end
       end
     end
 
