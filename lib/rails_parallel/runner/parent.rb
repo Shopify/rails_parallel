@@ -137,6 +137,7 @@ module RailsParallel
           while pid = wait_any(true)
             child = @by_pid[pid]
             close_child(child) if child
+            break if @children.empty?
           end
         end
       end
