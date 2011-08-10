@@ -17,7 +17,7 @@ module RailsParallel
       @socket << :ready
       @socket.each_object do |obj|
         break if obj == :shutdown
-        @socket << run_suite(obj) ? :success : :failure
+        @socket << (run_suite(obj) ? :success : :failure)
         @socket << :ready
       end
     rescue EOFError

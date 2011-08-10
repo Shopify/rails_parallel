@@ -56,11 +56,16 @@ module RailsParallel
           ensure
             @children.each(&:kill)
             output_result(Time.now - start)
+            Kernel.exit!(success? ? 0 : 1)
           end
         end
 
-        wait_for(pid)
-        @faults.empty?
+        begin
+          wait_for(pid)
+          true
+        rescue ChildFailed
+          false
+        end
       end
 
       private
@@ -157,6 +162,10 @@ module RailsParallel
         runner.faults = @faults.sort.map(&:last).flatten(1)
 
         runner.output_report(elapsed)
+      end
+
+      def success?
+        @faults.values.all?(&:empty?)
       end
 
       def number_of_workers

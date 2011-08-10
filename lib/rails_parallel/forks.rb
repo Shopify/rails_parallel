@@ -1,5 +1,13 @@
 module RailsParallel
   module Forks
+    class ChildFailed < StandardError
+      attr_reader :status
+
+      def initialize(status)
+        @status = status
+      end
+    end
+
     def fork_and_run
       ActiveRecord::Base.connection.disconnect! if ActiveRecord::Base.connected?
 
@@ -29,7 +37,7 @@ module RailsParallel
     end
 
     def check_status(stat)
-      raise "error: #{stat.inspect}" unless stat.success?
+      raise ChildFailed.new(stat) unless stat.success?
     end
 
     def before_exit
