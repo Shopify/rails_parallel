@@ -6,6 +6,21 @@ require 'rails_parallel/schema'
 
 module RailsParallel
   class Rake
+    class UnexpectedResponse < StandardError
+      attr_reader :expected, :received
+
+      def initialize(expected, received)
+        @expected = expected
+        @received = received
+      end
+
+      def to_s
+        "Expected #{@expected}, got #{received}"
+      end
+    end
+
+    class SuiteFailure < StandardError; end
+
     include Singleton
 
     SCHEMA_DIR = 'tmp/rails_parallel/schema'
@@ -57,7 +72,13 @@ module RailsParallel
         :options => options,
         :files   => files.to_a
       }
-      expect(:done)
+
+      begin
+        expect(:success)
+      rescue UnexpectedResponse => e
+        raise SuiteFailure.new("Test suite '#{name}' failed") if e.received == :failure
+        raise e
+      end
     end
 
     def shutdown
@@ -77,7 +98,7 @@ module RailsParallel
 
     def expect(want)
       got = @socket.next_object
-      raise "Expected #{want}, got #{got}" unless want == got
+      raise UnexpectedResponse.new(want, got) unless want == got
     end
 
     def parse_options(ruby_opts)

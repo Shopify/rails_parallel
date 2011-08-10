@@ -58,7 +58,9 @@ module RailsParallel
             output_result(Time.now - start)
           end
         end
+
         wait_for(pid)
+        @faults.empty?
       end
 
       private
