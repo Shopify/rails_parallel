@@ -183,7 +183,7 @@ module RailsParallel
           end
           cores.uniq.count
         elsif RUBY_PLATFORM =~ /darwin/
-          `/usr/bin/hwprefs cpu_count`.to_i
+          `/usr/sbin/sysctl -n hw.ncpu`.to_i
         end
       end
     end
