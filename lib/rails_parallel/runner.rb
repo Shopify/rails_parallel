@@ -14,11 +14,11 @@ module RailsParallel
     def run
       prepare
 
-      @socket << :ready
+      ready
       @socket.each_object do |obj|
         break if obj == :shutdown
         @socket << (run_suite(obj) ? :success : :failure)
-        @socket << :ready
+        ready
       end
     rescue EOFError
       # shutdown
@@ -31,8 +31,19 @@ module RailsParallel
       require 'test_helper'
     end
 
+    def status(msg)
+      $0 = "rails_parallel/master: #{msg}"
+    end
+
+    def ready
+      status 'idle'
+      @socket << :ready
+    end
+
     def run_suite(params)
-      Parent.new(params).run
+      parent = Parent.new(params)
+      status "running #{parent.name}"
+      parent.run
     end
   end
 end

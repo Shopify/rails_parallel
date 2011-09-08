@@ -69,6 +69,7 @@ module RailsParallel
         @socket.each_object do |obj|
           break if obj == :finish
 
+          $0 = "rails_parallel/worker: #{obj}"
           ($rp_suites ||= []) << obj
           suite = @collector.suite_for(obj)
           runner = TestRunner.new(suite)

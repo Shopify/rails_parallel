@@ -28,5 +28,9 @@ module RailsParallel
     def suite_for(name)
       @suites[name]
     end
+
+    def suite_count
+      @suites.count
+    end
   end
 end

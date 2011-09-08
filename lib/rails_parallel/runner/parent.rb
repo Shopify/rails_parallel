@@ -21,6 +21,8 @@ module RailsParallel
     class Parent
       include Forks
 
+      attr_reader :name
+
       def initialize(params)
         @name    = params[:name]
         @schema  = Schema.new(params[:schema])
@@ -37,17 +39,20 @@ module RailsParallel
 
         @result = Test::Unit::TestResult.new
         @faults = {}
+        @suites_done = 0
       end
 
       def run
         @schema.load_main_db
 
         pid = fork_and_run do
-          status "RP: Preparing #{@name} ... "
+          status "preparing #{@name}"
+          partial "RP: Preparing #{@name} ... "
           handle_options
           prepare
           puts "ready."
 
+          status "running #{@name}"
           puts "RP: Running #{@name}."
           start = Time.now
           begin
@@ -70,7 +75,7 @@ module RailsParallel
 
       private
 
-      def status(msg)
+      def partial(msg)
         $stdout.print(msg)
         $stdout.flush
       end
@@ -80,7 +85,7 @@ module RailsParallel
           case opt
           when :require
             value = 'rubygems' if value == 'ubygems'
-            status "#{value}, "
+            partial "#{value}, "
             require value
           else
             raise "Unknown option type: #{opt}"
@@ -89,7 +94,7 @@ module RailsParallel
       end
 
       def prepare
-        status "#{@files.count} test files ... "
+        partial "#{@files.count} test files ... "
         @files.each { |f| load f }
         @collector = Collector.new
         @collector.prepare(@timings, @name)
@@ -105,6 +110,7 @@ module RailsParallel
         @children << child
         @by_pid[child.pid] = child
         @by_socket[child.socket] = child
+        update_status
       end
 
       def monitor
@@ -134,6 +140,7 @@ module RailsParallel
                   suite, result, faults = packet
                   @result.append(result)
                   @faults[suite] = faults
+                  @suites_done += 1
                 end
               end
             rescue EOFError
@@ -154,6 +161,7 @@ module RailsParallel
         @children.delete(child)
         @by_socket.delete(child.socket)
         @by_pid.delete(child.pid)
+        update_status
       end
 
       def output_result(elapsed)
@@ -166,6 +174,15 @@ module RailsParallel
 
       def success?
         @faults.values.all?(&:empty?)
+      end
+
+      def update_status
+        percent = @suites_done * 100 / @collector.suite_count
+        status "running #{@name}, #{@children.count} workers, #{percent}% complete"
+      end
+
+      def status(msg)
+        $0 = "rails_parallel/parent: #{msg}"
       end
 
       def number_of_workers

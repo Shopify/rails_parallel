@@ -1,8 +1,12 @@
 #!/usr/bin/env ruby
 
 ENV['RAILS_ENV'] = 'test'
+def rp_master_status(msg)
+  $0 = "rails_parallel/master: #{msg}"
+end
 
 begin
+  rp_master_status 'loading RailsParallel'
   puts 'RP: Loading RailsParallel.'
   $LOAD_PATH << 'lib'
   require 'rails_parallel/runner'
@@ -11,6 +15,7 @@ begin
   socket = ObjectSocket.new(IO.for_fd(ARGV.first.to_i))
   socket << :started
 
+  rp_master_status 'loading Rails'
   puts 'RP: Loading Rails.'
   require "#{ENV['RAILS_PARALLEL_ROOT']}/config/environment"
 
