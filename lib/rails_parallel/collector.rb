@@ -12,13 +12,16 @@ module RailsParallel
         @suites[klass.name] = klass.suite if Test::Unit::TestCase > klass
       end
 
+      @times = {}
       @pending = @suites.keys.sort_by do |name|
+        time = @times[name] = timings.fetch(test_name, name)
         [
-          0 - timings.fetch(test_name, name),  # runtime, descending
-          0 - @suites[name].size,              # no. of tests, descending
+          0 - time,               # runtime, descending
+          0 - @suites[name].size, # no. of tests, descending
           name
         ]
       end
+      @complete = []
     end
 
     def next_suite
@@ -31,6 +34,22 @@ module RailsParallel
 
     def suite_count
       @suites.count
+    end
+
+    def complete(name)
+      @complete << name
+    end
+
+    def time_remaining
+      @suites.keys.map {|n| @times[n]}.sum
+    end
+
+    def time_complete
+      @complete.map {|n| @times[n]}.sum
+    end
+
+    def complete_percent
+      time_complete * 100.0 / time_remaining
     end
   end
 end

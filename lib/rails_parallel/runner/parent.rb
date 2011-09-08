@@ -39,7 +39,6 @@ module RailsParallel
 
         @result = Test::Unit::TestResult.new
         @faults = {}
-        @suites_done = 0
       end
 
       def run
@@ -140,7 +139,8 @@ module RailsParallel
                   suite, result, faults = packet
                   @result.append(result)
                   @faults[suite] = faults
-                  @suites_done += 1
+                  @collector.complete(suite)
+                  update_status
                 end
               end
             rescue EOFError
@@ -177,8 +177,7 @@ module RailsParallel
       end
 
       def update_status
-        percent = @suites_done * 100 / @collector.suite_count
-        status "running #{@name}, #{@children.count} workers, #{percent}% complete"
+        status "running #{@name}, #{@children.count} workers, #{@collector.complete_percent.floor}% complete"
       end
 
       def status(msg)
