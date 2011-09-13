@@ -49,6 +49,7 @@ module RailsParallel
     end
 
     def complete_percent
+      return nil if time_remaining <= 0.0
       time_complete * 100.0 / time_remaining
     end
   end

@@ -177,7 +177,10 @@ module RailsParallel
       end
 
       def update_status
-        status "running #{@name}, #{@children.count} workers, #{@collector.complete_percent.floor}% complete"
+        percent  = @collector.complete_percent
+        message  = "running #{@name}, #{@children.count} workers"
+        message += ", #{percent.floor}% complete" if percent
+        status message
       end
 
       def status(msg)
