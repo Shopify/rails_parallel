@@ -35,8 +35,9 @@ module RailsParallel
       puts "RP: Test environment failed to load: #{e.message} (#{e.class})"
       @socket << :schema_needed
 
-      msg = @socket.next_object
-      raise "Unexpected: #{msg.inspect}" unless msg == :restart
+      schema_file = @socket.next_object
+      puts "RP: Loading #{Rails.env} schema ..."
+      Schema.new(schema_file).load_main_db
 
       puts 'RP: Restarting ...'
       puts

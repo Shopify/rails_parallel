@@ -67,12 +67,7 @@ module RailsParallel
 
       case @socket.next_object
       when :schema_needed
-        puts 'RP: Loading database and retrying ...'
-        ::Rake::Task['environment'].invoke
-        Schema.new(schema).load_test_db
-        puts "RP: Loaded test schema."
-
-        @socket << :restart
+        @socket << schema
         expect(:started)
         expect(:ready)
       when :ready
