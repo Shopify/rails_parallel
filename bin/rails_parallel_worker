@@ -19,8 +19,7 @@ begin
   puts 'RP: Loading Rails.'
   require "#{ENV['RAILS_PARALLEL_ROOT']}/config/environment"
 
-  puts 'RP: Ready for testing.'
-  RailsParallel::Runner.launch(socket)
+  RailsParallel::Runner.launch(socket, __FILE__)
   puts 'RP: Shutting down.'
   Kernel.exit!(0)
 rescue Interrupt, SignalException

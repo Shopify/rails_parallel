@@ -65,7 +65,20 @@ module RailsParallel
       options = parse_options(ruby_opts)
       schema  = schema_file
 
-      expect(:ready)
+      case @socket.next_object
+      when :schema_needed
+        puts 'RP: Loading database and retrying ...'
+        ::Rake::Task['environment'].invoke
+        Schema.new(schema).load_test_db
+        puts "RP: Loaded test schema."
+
+        @socket << :restart
+        expect(:started)
+        expect(:ready)
+      when :ready
+        # success
+      end
+
       @socket << {
         :name    => name,
         :schema  => schema,

@@ -25,8 +25,12 @@ module RailsParallel
       end
     end
 
-    def load_db(number)
-      update_db_config(number)
+    def load_test_db
+      load_db(1, 'test')
+    end
+
+    def load_db(number, env = Rails.env)
+      update_db_config(number, env)
       if schema_loaded?
         reconnect
         false
@@ -43,8 +47,8 @@ module RailsParallel
       ActiveRecord::Base.connection
     end
 
-    def update_db_config(number)
-      config = ActiveRecord::Base.configurations[Rails.env]
+    def update_db_config(number, env)
+      config = ActiveRecord::Base.configurations[env]
       config['database'] += "_#{number}" unless number == 1
       @dbconfig = config.with_indifferent_access
     end
