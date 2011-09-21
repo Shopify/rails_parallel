@@ -1,5 +1,6 @@
 require 'rake/testtask'
 require 'fcntl'
+require 'pathname'
 
 require 'rails_parallel/object_socket'
 require 'rails_parallel/schema'
@@ -51,7 +52,8 @@ module RailsParallel
       @pid = fork do
         my_socket.close
         ENV['RAILS_PARALLEL_ROOT'] = Rails.root
-        exec('rails_parallel_worker', sock.fileno.to_s)
+        script = Pathname.new(__FILE__).dirname.dirname.dirname + 'bin/rails_parallel_worker'
+        exec(script.to_s, sock.fileno.to_s)
         raise 'exec failed'
       end
 
