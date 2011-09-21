@@ -150,19 +150,19 @@ module RailsParallel
                 end
               end
             rescue EOFError
-              child_died(child)
+              child_died(child, 'EOF')
             end
           end
 
           while pid = wait_any(true)
             child = @by_pid[pid]
-            child_died(child) if child
+            child_died(child, 'reaped') if child
           end
         end
       end
 
-      def child_died(child)
-        raise "Child ##{child.number} (#{child.pid}) died unexpectedly"
+      def child_died(child, reason)
+        raise "Child ##{child.number} (#{child.pid}) died unexpectedly (#{reason})"
       end
 
       def close_child(child)
