@@ -55,7 +55,7 @@ module RailsParallel
       end
 
       def kill
-        Process.kill('KILL', @pid)
+        Process.kill('KILL', @pid) rescue nil
         close rescue nil
       end
 
@@ -98,6 +98,7 @@ module RailsParallel
         end
 
         @socket << :finished
+        @socket.next_object rescue nil # wait for EOFError to avoid race condition
       end
     end
   end

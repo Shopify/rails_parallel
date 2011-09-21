@@ -32,10 +32,11 @@ module RailsParallel
 
         @timings = Timings.new
 
-        @children  = []
-        @launched  = 0
-        @by_pid    = {}
-        @by_socket = {}
+        @children   = []
+        @launched   = 0
+        @by_pid     = {}
+        @by_socket  = {}
+        @close_wait = []
 
         @result = Test::Unit::TestResult.new
         @faults = {}
@@ -149,20 +150,27 @@ module RailsParallel
                   update_status
                 end
               end
-            rescue EOFError
+            rescue EOFError => e
               child_died(child, 'EOF')
             end
           end
 
-          while pid = wait_any(true)
-            child = @by_pid[pid]
-            child_died(child, 'reaped') if child
-          end
+          wait_loop(true)
         end
+
+        wait_loop(false)
       end
 
       def child_died(child, reason)
         raise "Child ##{child.number} (#{child.pid}) died unexpectedly (#{reason})"
+      end
+
+      def wait_loop(nonblock)
+        return if @close_wait.empty?
+
+        while !@close_wait.empty? && pid = wait_any(nonblock)
+          @close_wait.delete(pid)
+        end
       end
 
       def close_child(child)
@@ -170,6 +178,7 @@ module RailsParallel
         @children.delete(child)
         @by_socket.delete(child.socket)
         @by_pid.delete(child.pid)
+        @close_wait << child.pid
         update_status
       end
 
