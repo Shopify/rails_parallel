@@ -54,13 +54,19 @@ module RailsParallel
           status "running #{@name}"
           puts "RP: Running #{@name}."
           start = Time.now
+          exception = nil
           begin
             launch_next_child
             monitor
+          rescue Exception => e
+            exception = e
           ensure
             @children.each(&:kill)
             output_result(Time.now - start)
-            Kernel.exit!(success? ? 0 : 1)
+            puts "RP: Suite failed: #{exception.message} (#{exception.class.name})" if exception
+
+            success = exception.nil? && success?
+            Kernel.exit!(success ? 0 : 1)
           end
         end
 
@@ -144,16 +150,19 @@ module RailsParallel
                 end
               end
             rescue EOFError
-              close_child(child)
+              child_died(child)
             end
           end
 
           while pid = wait_any(true)
             child = @by_pid[pid]
-            close_child(child) if child
-            break if @children.empty?
+            child_died(child) if child
           end
         end
+      end
+
+      def child_died(child)
+        raise "Child ##{child.number} (#{child.pid}) died unexpectedly"
       end
 
       def close_child(child)
