@@ -151,7 +151,7 @@ module RailsParallel
                 end
               end
             rescue EOFError => e
-              child_died(child, 'EOF')
+              raise "Child ##{child.number} (#{child.pid}) died unexpectedly"
             end
           end
 
@@ -159,10 +159,6 @@ module RailsParallel
         end
 
         wait_loop(false)
-      end
-
-      def child_died(child, reason)
-        raise "Child ##{child.number} (#{child.pid}) died unexpectedly (#{reason})"
       end
 
       def wait_loop(nonblock)
