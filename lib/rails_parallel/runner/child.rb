@@ -1,5 +1,15 @@
 require 'rails_parallel/object_socket'
 require 'rails_parallel/runner/test_runner'
+require 'rails_parallel/safe_exception'
+require 'test/unit/testresult'
+
+class Test::Unit::TestResult
+  def make_errors_safe!
+    @errors = @errors.map do |e|
+      Test::Unit::Error.new(e.test_name, RailsParallel::SafeException.new(e.exception))
+    end
+  end
+end
 
 module RailsParallel
   class Runner
@@ -75,7 +85,16 @@ module RailsParallel
           runner = TestRunner.new(suite)
           runner.start
 
-          @socket << [obj, runner.result, runner.faults] << :ready
+          faults = runner.faults.map do |fault|
+            if fault.kind_of?(Test::Unit::Error)
+              Test::Unit::Error.new(fault.test_name, SafeException.new(fault.exception))
+            else
+              fault
+            end
+          end
+
+          runner.result.make_errors_safe!
+          @socket << [obj, runner.result, faults] << :ready
         end
 
         @socket << :finished
