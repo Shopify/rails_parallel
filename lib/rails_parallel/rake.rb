@@ -136,6 +136,10 @@ module RailsParallel
     end
 
     def schema_file
+      @schema_file ||= make_schema_file
+    end
+
+    def make_schema_file
       digest   = schema_digest
       basename = "#{digest}.sql"
       schema   = "#{SCHEMA_DIR}/#{basename}"
