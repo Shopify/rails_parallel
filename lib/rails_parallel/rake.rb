@@ -23,6 +23,7 @@ module RailsParallel
     class SuiteFailure < StandardError; end
 
     include Singleton
+    include ::Rake::DSL
 
     SCHEMA_DIR = 'tmp/rails_parallel/schema'
 
