@@ -64,7 +64,11 @@ module RailsParallel
           ensure
             @children.each(&:kill)
             output_result(Time.now - start)
-            puts "RP: Suite failed: #{exception.message} (#{exception.class.name})" if exception
+
+            if exception
+              puts "RP: Suite failed: #{exception.message} (#{exception.class.name})"
+              puts "Backtrace:\n\t" + exception.backtrace.join("\n\t")
+            end
 
             success = exception.nil? && success?
             Kernel.exit!(success ? 0 : 1)
