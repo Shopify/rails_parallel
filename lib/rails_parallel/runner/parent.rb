@@ -162,6 +162,7 @@ module RailsParallel
           wait_loop(true)
         end
 
+        @timings.flush
         wait_loop(false)
       end
 

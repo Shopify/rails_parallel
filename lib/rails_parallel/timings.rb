@@ -8,16 +8,13 @@ module RailsParallel
     TIMING_COUNT = 10
 
     def initialize
-      reset_cache
+      reconnect
+      @queue = []
     end
 
     def record(test_name, class_name, time)
       key = key_for(test_name, class_name)
-      @cache.lpush(key, time)
-      @cache.ltrim(key, 0, TIMING_COUNT - 1)
-    rescue Errno::EAGAIN, Timeout::Error => e
-      puts "RP: Failed to record timeout for #{class_name} (#{e.class.name})."
-      reset_cache
+      @queue << [key, time]
     end
 
     def fetch(test_name, class_name)
@@ -27,10 +24,22 @@ module RailsParallel
       times.sum / times.count
     end
 
+    def flush
+      @queue.each do |key, time|
+        begin
+          @cache.lpush(key, time)
+          @cache.ltrim(key, 0, TIMING_COUNT - 1)
+        rescue Errno::EAGAIN, Timeout::Error => e
+          puts "RP: Failed to record #{key} (#{e.class.name})."
+          reconnect
+        end
+      end
+      @queue = []
+    end
+
     private
 
-    def reset_cache
-      @cache.quit if @cache
+    def reconnect
       @cache = Redis.new
     end
 
