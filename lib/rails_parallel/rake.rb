@@ -52,7 +52,7 @@ module RailsParallel
 
       @pid = fork do
         my_socket.close
-        ENV['RAILS_PARALLEL_ROOT'] = Rails.root
+        ENV['RAILS_PARALLEL_ROOT'] = Rails.root.to_s
         script = Pathname.new(__FILE__).dirname.dirname.dirname + 'bin/rails_parallel_worker'
         exec(script.to_s, sock.fileno.to_s)
         raise 'exec failed'
