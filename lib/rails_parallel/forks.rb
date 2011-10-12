@@ -18,9 +18,10 @@ module RailsParallel
         rescue Interrupt, SignalException
           Kernel.exit!(1)
         rescue Exception => e
-          puts "Error: #{e}"
-          puts(*e.backtrace.map {|t| "\t#{t}"})
+          $stderr.puts "Error: #{e}"
+          $stderr.puts(*e.backtrace.map {|t| "\t#{t}"})
           before_exit
+          [$stdout, $stderr].each(&:flush)
           Kernel.exit!(1)
         end
       end
