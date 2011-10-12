@@ -20,7 +20,6 @@ module RailsParallel
         rescue Exception => e
           $stderr.puts "Error: #{e}"
           $stderr.puts(*e.backtrace.map {|t| "\t#{t}"})
-          before_exit
           [$stdout, $stderr].each(&:flush)
           Kernel.exit!(1)
         end
@@ -39,10 +38,6 @@ module RailsParallel
 
     def check_status(stat)
       raise ChildFailed.new(stat) unless stat.success?
-    end
-
-    def before_exit
-      # cleanup here (in children)
     end
   end
 end
