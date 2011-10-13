@@ -83,7 +83,12 @@ module RailsParallel
           ($rp_suites ||= []) << obj
           suite = @collector.suite_for(obj)
           runner = TestRunner.new(suite)
-          runner.start
+          begin
+            runner.start
+          rescue Exception => e
+            $stderr.puts "\nRP: Test suite error while running #{obj}."
+            raise e
+          end
 
           faults = runner.faults.map do |fault|
             if fault.kind_of?(Test::Unit::Error)
