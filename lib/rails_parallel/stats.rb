@@ -97,25 +97,29 @@ module RailsParallel
         output = []
         last_finish = nil
 
-        multi_count  = @multis.map(&:suite_count).sum
-        multi_finish = multi_duration = nil
+        multi_count = @multis.map(&:suite_count).sum
+        base_finish = base_duration = nil
         if multi_count > 0
           multi_finish   = @multis.last.finish_time
           multi_duration = multi_finish - @start_time
           classes = multi_count == 1 ? "class" : "classes"
           output.unshift "#{multi_count} test #{classes} took #{TIME_FORMAT % multi_duration}."
-          last_finish = multi_finish
+
+          last_finish   = multi_finish
+          base_finish   = multi_finish
+          base_duration = multi_duration
         end
 
-        @singles.each_with_index do |entry, index|
+        further = false
+        @singles.each do |entry|
           begin
-            first = index == 0
-
             duration  = entry.finish_time - @start_time
             base_text = "#{entry.suite} took #{TIME_FORMAT % duration}"
 
             if last_finish.nil?
               output << "#{base_text}."
+              base_finish   = entry.finish_time
+              base_duration = duration
               next
             end
 
@@ -124,16 +128,17 @@ module RailsParallel
             percent    = extended * 100.0 / prior_time
 
             percent_text = "%d%%" % percent
-            unless first
+            if further
               percent_text = "a further #{percent_text}"
-              if multi_finish
-                total_extended = entry.finish_time - multi_finish
-                total_percent  = total_extended * 100 / multi_duration
+              if base_finish
+                total_extended = entry.finish_time - base_finish
+                total_percent  = total_extended * 100 / base_duration
                 percent_text += " (total %d%%)" % total_percent
               end
             end
 
             output << "#{base_text} and extended the suite by #{percent_text}."
+            further = true
           ensure
             last_finish = entry.finish_time
           end
