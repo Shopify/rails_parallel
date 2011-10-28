@@ -49,6 +49,7 @@ class ObjectSocket
   end
 
   def <<(obj)
+    flush_stdio
     data = Marshal.dump(obj)
     @socket.syswrite [data.size, data].pack('Na*')
     self # chainable
@@ -72,5 +73,9 @@ class ObjectSocket
     return yield
   ensure
     @nonblock = old_value
+  end
+
+  def flush_stdio
+    [$stdout, $stderr].each { |fh| fh.flush } # 1.9 stdio buffering
   end
 end
