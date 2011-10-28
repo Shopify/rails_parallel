@@ -4,15 +4,13 @@ module RailsParallel
     class Entry
       attr_reader :finish_time
 
-      SKIP_DURATION = 0.02 # very short tests are omitted
-
       def initialize(id)
         @id = id
         @suites = []
       end
 
       def add(suite, duration)
-        @suites << [suite, duration] unless duration < SKIP_DURATION
+        @suites << [suite, duration]
       end
 
       def finish

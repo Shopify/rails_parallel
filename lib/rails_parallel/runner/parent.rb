@@ -137,12 +137,6 @@ module RailsParallel
                 when :started
                   launch_next_child
                 when :ready
-                  if child.last_suite
-                    duration = Time.now - child.last_time
-                    @timings.record(@name,  child.last_suite, duration)
-                    @stats.add(child.number, child.last_suite, duration)
-                  end
-
                   suite = @collector.next_suite
                   if suite
                     child.run_suite(suite)
@@ -158,6 +152,13 @@ module RailsParallel
                   @result.append(result)
                   @faults[suite] = faults
                   @collector.complete(suite)
+
+                  if result.run_count > 0
+                    duration = Time.now - child.last_time
+                    @timings.record(@name, child.last_suite, duration)
+                    @stats.add(child.number, child.last_suite, duration)
+                  end
+
                   update_status
                 end
               end
