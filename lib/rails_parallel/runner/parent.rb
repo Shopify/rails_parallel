@@ -172,11 +172,10 @@ module RailsParallel
         @timings.flush
         wait_loop(false)
 
-        slow = @stats.find_slow_suites
-        unless slow.empty?
+        report = @stats.slow_report
+        if report.show?
           puts
-          slow.each { |msg| puts "RP: #{msg}." }
-          puts "RP: Consider splitting up #{slow.count == 1 ? 'this class' : 'these classes'} for better performance."
+          report.output.each { |msg| puts "RP: #{msg}" }
         end
       end
 
