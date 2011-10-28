@@ -2,6 +2,7 @@ require 'rails_parallel/forks'
 require 'rails_parallel/collector'
 require 'rails_parallel/timings'
 require 'rails_parallel/schema'
+require 'rails_parallel/stats'
 require 'rails_parallel/runner/child'
 require 'rails_parallel/runner/test_runner'
 
@@ -124,6 +125,7 @@ module RailsParallel
       end
 
       def monitor
+        @stats = Stats.new
         until @children.empty?
           watching = @children.map(&:socket)
           IO.select(watching).first.each do |socket|
@@ -135,13 +137,18 @@ module RailsParallel
                 when :started
                   launch_next_child
                 when :ready
-                  @timings.record(@name, child.last_suite, Time.now - child.last_time) if child.last_suite
+                  if child.last_suite
+                    duration = Time.now - child.last_time
+                    @timings.record(@name,  child.last_suite, duration)
+                    @stats.add(child.number, child.last_suite, duration)
+                  end
 
                   suite = @collector.next_suite
                   if suite
                     child.run_suite(suite)
                   else
                     @complete = true
+                    @stats.finish(child.number)
                     child.finish
                   end
                 when :finished
@@ -164,6 +171,13 @@ module RailsParallel
 
         @timings.flush
         wait_loop(false)
+
+        slow = @stats.find_slow_suites
+        unless slow.empty?
+          puts
+          slow.each { |msg| puts "RP: #{msg}." }
+          puts "RP: Consider splitting up #{slow.count == 1 ? 'this class' : 'these classes'} for better performance."
+        end
       end
 
       def wait_loop(nonblock)
@@ -181,6 +195,7 @@ module RailsParallel
         @by_pid.delete(child.pid)
         @close_wait << child.pid
         update_status
+        @stats.finish(child.number)
       end
 
       def output_result(elapsed)
