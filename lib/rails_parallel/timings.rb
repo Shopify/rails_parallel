@@ -44,7 +44,8 @@ module RailsParallel
     end
 
     def key_for(test_name, class_name)
-      "timings-#{test_name}-#{class_name}"
+      prefix = ENV['RP_TIMINGS_PREFIX'] || RUBY_VERSION
+      "timings-#{prefix}-#{test_name}-#{class_name}"
     end
   end
 end
