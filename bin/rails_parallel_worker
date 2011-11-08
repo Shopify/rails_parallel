@@ -13,7 +13,7 @@ begin
   require 'rails_parallel/object_socket'
 
   socket = ObjectSocket.new(IO.for_fd(ARGV.first.to_i))
-  socket << :started
+  socket << :starting
 
   rp_master_status 'loading Rails'
   puts 'RP: Loading Rails.'

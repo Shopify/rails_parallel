@@ -28,21 +28,37 @@ module RailsParallel
 
     private
 
+    RESTART = 'RP_RESTARTED'
+
     def prepare
-      $LOAD_PATH << 'test'
-      require 'test_helper'
-    rescue Mysql2::Error => e
-      puts "RP: Test environment failed to load: #{e.message} (#{e.class})"
-      @socket << :schema_needed
+      restart = false
+      begin
+        puts "RP: Loading test environment."
+        $LOAD_PATH << 'test'
+        require 'test_helper'
+      rescue Mysql2::Error => e
+        raise e if ENV[RESTART]
+        puts "RP: Test environment failed to load: #{e.message} (#{e.class})"
+        restart = true
+      end
 
       schema_file = @socket.next_object
-      puts "RP: Loading #{Rails.env} schema ..."
-      Schema.new(schema_file).load_main_db
+      @schema = Schema.new(schema_file)
 
-      puts 'RP: Restarting ...'
-      puts
-      exec(@script, *ARGV)
-      raise "exec failed"
+      unless ENV[RESTART]
+        puts "RP: Loading test schema."
+        @schema.load_main_db
+      end
+
+      if restart
+        puts 'RP: Restarting ...'
+        puts
+        ENV[RESTART] = '1'
+        exec(@script, *ARGV)
+        raise "exec failed"
+      end
+
+      @socket << :started
     end
 
     def status(msg)
@@ -55,7 +71,7 @@ module RailsParallel
     end
 
     def run_suite(params)
-      parent = Parent.new(params)
+      parent = Parent.new(@schema, params)
       status "running #{parent.name}"
       parent.run
     end

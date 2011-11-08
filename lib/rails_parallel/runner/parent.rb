@@ -24,9 +24,9 @@ module RailsParallel
 
       attr_reader :name
 
-      def initialize(params)
+      def initialize(schema, params)
+        @schema  = schema
         @name    = params[:name]
-        @schema  = Schema.new(params[:schema])
         @options = params[:options]
         @files   = params[:files]
         @max_children = number_of_workers

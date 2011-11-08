@@ -61,26 +61,22 @@ module RailsParallel
       c_socket.close
       @socket = my_socket
 
-      expect(:started)
+      @socket.each_object do |obj|
+        case obj
+        when :starting
+          @socket << schema_file
+        when :started
+          break
+        end
+      end
     end
 
     def run(name, ruby_opts, files)
-      options = parse_options(ruby_opts)
-      schema  = schema_file
-
-      case @socket.next_object
-      when :schema_needed
-        @socket << schema
-        expect(:started)
-        expect(:ready)
-      when :ready
-        # success
-      end
+      expect(:ready)
 
       @socket << {
         :name    => name,
-        :schema  => schema,
-        :options => options,
+        :options => parse_options(ruby_opts),
         :files   => files.to_a
       }
 
