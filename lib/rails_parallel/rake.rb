@@ -168,9 +168,24 @@ module RailsParallel
       FileUtils.mkdir_p(SCHEMA_DIR)
       Tempfile.open(["#{digest}.", ".sql"], SCHEMA_DIR) do |file|
         ::Rake::Task['parallel:db:setup'].invoke
-        sh "mysqldump --no-data -u root shopify_dev > #{file.path}"
 
+        config  = ActiveRecord::Base.configurations[Rails.env].with_indifferent_access
+        command = ['mysqldump', '--no-data']
+        command << "--host=#{config[:host]}"         unless config[:host].blank?
+        command << "--user=#{config[:username]}"     unless config[:username].blank?
+        command += "--password=#{config[:password]}" unless config[:password].blank?
+        command << config[:database]
+
+        pid = fork do
+          STDOUT.reopen(file)
+          exec *command
+          raise 'exec failed'
+        end
+
+        Process.wait(pid)
+        raise 'mysqldump failed' unless $?.success?
         raise 'No schema dumped' unless file.size > 0
+
         File.rename(file.path, schema)
         $schema_dump_file = nil
       end
