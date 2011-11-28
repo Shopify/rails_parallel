@@ -3,6 +3,8 @@ require 'rails_parallel/object_socket'
 
 module RailsParallel
   class Runner
+    class Shutdown < StandardError; end
+
     def self.launch(socket, script)
       Runner.new(socket, script).run
     end
@@ -22,7 +24,7 @@ module RailsParallel
         @socket << (run_suite(obj) ? :success : :failure)
         ready
       end
-    rescue EOFError
+    rescue EOFError, Shutdown
       # shutdown
     end
 
@@ -43,6 +45,7 @@ module RailsParallel
       end
 
       schema_file = @socket.next_object
+      raise Shutdown if schema_file == :shutdown
       @schema = Schema.new(schema_file)
 
       unless ENV[RESTART]
