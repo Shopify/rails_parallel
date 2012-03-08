@@ -40,7 +40,7 @@ module RailsParallel
     private
 
     def reconnect
-      @cache = Redis.new
+      @cache = Redis.new(:db => 6)
     end
 
     def key_for(test_name, class_name)
