@@ -9,6 +9,16 @@ module RailsParallel
       Runner.new(socket, script).run
     end
 
+    @@on_fork = []
+
+    def self.on_fork(&block)
+      @@on_fork << block
+    end
+
+    def self.run_after_fork
+      @@on_fork.each(&:call)
+    end
+
     def initialize(socket, script)
       @socket = socket
       @script = script
