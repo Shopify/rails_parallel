@@ -15,8 +15,8 @@ module RailsParallel
       @@on_fork << block
     end
 
-    def self.run_after_fork
-      @@on_fork.each(&:call)
+    def self.run_after_fork(worker_num)
+      @@on_fork.each { |p| p.call(worker_num) }
     end
 
     def initialize(socket, script)

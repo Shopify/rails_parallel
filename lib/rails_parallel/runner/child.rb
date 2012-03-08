@@ -32,7 +32,7 @@ module RailsParallel
         @pid = fork_and_run do
           parent_socket.close
           @socket = child_socket
-          ::RailsParallel::Runner.run_after_fork
+          ::RailsParallel::Runner.run_after_fork(@number)
           main_loop
         end
 
