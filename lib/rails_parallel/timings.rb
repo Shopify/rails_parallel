@@ -1,3 +1,4 @@
+require 'rails_parallel'
 require 'rubygems'
 require 'redis'
 require 'redis/connection/hiredis'
@@ -8,7 +9,7 @@ module RailsParallel
     TIMING_COUNT = 10
 
     def initialize
-      reconnect
+      @cache = RailsParallel.redis
       @queue = []
     end
 
@@ -31,18 +32,12 @@ module RailsParallel
           @cache.ltrim(key, 0, TIMING_COUNT - 1)
         rescue Errno::EAGAIN, Timeout::Error => e
           puts "RP: Failed to record #{key} (#{e.class.name})."
-          reconnect
         end
       end
       @queue = []
     end
 
     private
-
-    def reconnect
-      db = ENV['RP_TIMINGS_DB'] || 15
-      @cache = Redis.new(:db => db)
-    end
 
     def key_for(test_name, class_name)
       prefix = ENV['RP_TIMINGS_PREFIX'] || RUBY_VERSION
