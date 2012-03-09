@@ -167,14 +167,22 @@ module RailsParallel
     def generate_schema(digest, schema)
       FileUtils.mkdir_p(SCHEMA_DIR)
       Tempfile.open(["#{digest}.", ".sql"], SCHEMA_DIR) do |file|
-        ::Rake::Task['parallel:db:setup'].invoke
+        invoke_task('db:create', :force)
+        invoke_task('environment')
 
         config  = ActiveRecord::Base.configurations[Rails.env].with_indifferent_access
+        scratch = config.merge(:database => config[:database] + '_rp_scratch')
+
+        ActiveRecord::Base.configurations[Rails.env] = scratch
+        invoke_task('db:drop', :force)
+        invoke_task('db:create', :force)
+        invoke_task('parallel:db:setup', :force)
+
         command = ['mysqldump', '--no-data']
-        command << "--host=#{config[:host]}"         unless config[:host].blank?
-        command << "--user=#{config[:username]}"     unless config[:username].blank?
-        command += "--password=#{config[:password]}" unless config[:password].blank?
-        command << config[:database]
+        command << "--host=#{scratch[:host]}"         unless scratch[:host].blank?
+        command << "--user=#{scratch[:username]}"     unless scratch[:username].blank?
+        command += "--password=#{scratch[:password]}" unless scratch[:password].blank?
+        command << scratch[:database]
 
         pid = fork do
           STDOUT.reopen(file)
@@ -188,7 +196,18 @@ module RailsParallel
 
         File.rename(file.path, schema)
         $schema_dump_file = nil
+
+        invoke_task('db:drop', :force)
+
+        ActiveRecord::Base.configurations[Rails.env] = config
+        ActiveRecord::Base.establish_connection(config)
       end
+    end
+
+    def invoke_task(name, force = false)
+      task = ::Rake::Task[name]
+      task.reenable if force
+      task.invoke
     end
   end
 end
