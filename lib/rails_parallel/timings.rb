@@ -1,7 +1,6 @@
 require 'rails_parallel'
 require 'rubygems'
 require 'redis'
-require 'redis/connection/hiredis'
 require 'active_support/core_ext/enumerable'
 
 module RailsParallel
