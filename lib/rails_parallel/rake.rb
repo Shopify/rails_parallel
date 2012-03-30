@@ -61,13 +61,18 @@ module RailsParallel
       c_socket.close
       @socket = my_socket
 
-      @socket.each_object do |obj|
-        case obj
-        when :starting
-          @socket << schema_file
-        when :started
-          break
+      begin
+        @socket.each_object do |obj|
+          case obj
+          when :starting
+            @socket << schema_file
+          when :started
+            break
+          end
         end
+      rescue Exception
+        shutdown
+        raise
       end
     end
 
