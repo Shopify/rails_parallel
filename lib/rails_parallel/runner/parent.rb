@@ -231,10 +231,14 @@ module RailsParallel
         if RUBY_PLATFORM =~ /linux/
           cores = File.read('/proc/cpuinfo').split("\n\n").map do |data|
             values = data.split("\n").map { |line| line.split(/\s*:/, 2) }
-            attrs  = Hash[*values.flatten]
-            ['physical id', 'core id'].map { |key| attrs[key] }.join("/")
+            Hash[*values.flatten]
           end
-          cores.uniq.count
+
+          if cores.first['flags'].include?('hypervisor')
+            cores.first['siblings'].to_i
+          else
+            cores.map {|c| [c['physical id'], c['core id']] }.uniq.count
+          end
         elsif RUBY_PLATFORM =~ /darwin/
           `/usr/sbin/sysctl -n hw.ncpu`.to_i
         end
