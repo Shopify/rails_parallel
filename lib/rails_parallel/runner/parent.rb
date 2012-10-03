@@ -109,6 +109,9 @@ module RailsParallel
         @files.each { |f| load f }
         @collector = Collector.new
         @collector.prepare(@timings, @name)
+
+        count = @collector.suite_count
+        @max_children = count if count < @max_children
       end
 
       def launch_next_child
