@@ -243,7 +243,7 @@ module RailsParallel
             cores.map {|c| [c['physical id'], c['core id']] }.uniq.count
           end
         elsif RUBY_PLATFORM =~ /darwin/
-          `/usr/sbin/sysctl -n hw.ncpu`.to_i
+          `/usr/sbin/sysctl -n hw.physicalcpu`.to_i
         end
       end
     end
