@@ -50,6 +50,12 @@ module RailsParallel
       ActiveRecord::Base.connection
     end
 
+    def update_db_config(number)
+      config = ActiveRecord::Base.configurations[Rails.env]
+      config['database'] += "_#{number}" unless number == 1
+      @dbconfig = config.with_indifferent_access
+    end
+
     def schema_load
       dbname = @dbconfig[:database]
       mysql_args = ['-u', 'root']
