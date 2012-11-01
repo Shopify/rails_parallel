@@ -33,7 +33,7 @@ module RailsParallel
           parent_socket.close
           @socket = child_socket
 
-          @schema.update_db_config(@number)
+          @schema.load_db(@number)
           ::RailsParallel::Runner.run_after_fork(@number)
 
           main_loop
@@ -76,8 +76,6 @@ module RailsParallel
       private
 
       def main_loop
-        @schema.load_db(@number)
-
         @socket << :started << :ready
 
         @socket.each_object do |obj|
