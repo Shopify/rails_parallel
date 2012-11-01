@@ -9,14 +9,23 @@ module RailsParallel
       Runner.new(socket, script).run
     end
 
-    @@on_fork = []
+    @@before_fork = []
+    @@after_fork = []
 
-    def self.on_fork(&block)
-      @@on_fork << block
+    def self.before_fork(&block)
+      @@before_fork << block
+    end
+
+    def self.after_fork(&block)
+      @@after_fork << block
+    end
+
+    def self.run_before_fork
+      @@before_fork.each { |p| p.call }
     end
 
     def self.run_after_fork(worker_num)
-      @@on_fork.each { |p| p.call(worker_num) }
+      @@after_fork.each { |p| p.call(worker_num) }
     end
 
     def initialize(socket, script)

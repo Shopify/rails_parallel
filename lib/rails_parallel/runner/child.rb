@@ -29,6 +29,8 @@ module RailsParallel
       def launch
         parent_socket, child_socket = ObjectSocket.pair
 
+        ::RailsParallel::Runner.run_before_fork
+
         @pid = fork_and_run do
           parent_socket.close
           @socket = child_socket
