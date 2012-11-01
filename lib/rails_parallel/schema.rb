@@ -71,20 +71,14 @@ module RailsParallel
     end
 
     def schema_loaded?
-      begin
-        ActiveRecord::Base.establish_connection(@dbconfig)
-        ActiveRecord::Base.connection
-      rescue StandardError
-        return false
-      end
+      ActiveRecord::Base.establish_connection(@dbconfig)
+      ActiveRecord::Base.connection
 
-      begin
-        sm_table = ActiveRecord::Migrator.schema_migrations_table_name
-        migrated = ActiveRecord::Base.connection.select_values("SELECT version FROM #{sm_table}")
-        migrated.include?(@file)
-      rescue ActiveRecord::StatementInvalid
-        false
-      end
+      sm_table = ActiveRecord::Migrator.schema_migrations_table_name
+      migrated = ActiveRecord::Base.connection.select_values("SELECT version FROM #{sm_table}")
+      migrated.include?(@file)
+    rescue
+      return false
     end
   end
 end
