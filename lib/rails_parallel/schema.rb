@@ -36,6 +36,13 @@ module RailsParallel
       end
     end
 
+    def update_db_config(number)
+      return @dbconfig if @dbconfig
+      config = ActiveRecord::Base.configurations[Rails.env]
+      config['database'] += "_#{number}" unless number == 1
+      @dbconfig = config.with_indifferent_access
+    end
+
     private
 
     def reconnect(override = {})
