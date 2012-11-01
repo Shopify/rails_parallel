@@ -27,18 +27,16 @@ module RailsParallel
 
     def load_db(number)
       update_db_config(number)
-      if schema_loaded?
-        reconnect
-        false
-      else
-        schema_load
-        true
-      end
+      return false if schema_loaded?
+
+      schema_load
+      true
     end
 
     private
 
     def reconnect(override = {})
+      ActiveRecord::Base.clear_active_connections!
       ActiveRecord::Base.establish_connection(@dbconfig.merge(override))
       ActiveRecord::Base.connection
     end
@@ -71,8 +69,7 @@ module RailsParallel
     end
 
     def schema_loaded?
-      ActiveRecord::Base.establish_connection(@dbconfig)
-      ActiveRecord::Base.connection
+      reconnect
 
       sm_table = ActiveRecord::Migrator.schema_migrations_table_name
       migrated = ActiveRecord::Base.connection.select_values("SELECT version FROM #{sm_table}")
