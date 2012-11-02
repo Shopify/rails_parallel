@@ -161,7 +161,7 @@ module RailsParallel
 
     def silently
       File.open('/dev/null', 'w') do |fh|
-        $stdout = $stderr = fh unless Rake.application.options.trace
+        $stdout = $stderr = fh unless ::Rake.application.options.trace
         yield
       end
     ensure
