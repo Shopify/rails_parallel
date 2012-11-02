@@ -13,6 +13,7 @@ module RailsParallel
         failed = 0
         ObjectSpace.each_object(Class) do |klass|
           next unless klass < ActiveRecord::Base
+          next if klass.abstract_class
 
           klass.reset_column_information
           begin
@@ -52,8 +53,8 @@ module RailsParallel
       mysql_args = ['-u', 'root']
 
       connection = reconnect(:database => nil)
-      connection.execute("DROP DATABASE IF EXISTS #{dbname}")
-      connection.execute("CREATE DATABASE #{dbname}")
+      connection.drop_database(dbname) rescue nil
+      connection.create_database(dbname)
 
       File.open(@file) do |fh|
         pid = fork do

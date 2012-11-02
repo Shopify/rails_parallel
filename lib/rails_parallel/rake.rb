@@ -127,7 +127,11 @@ module RailsParallel
     def create_test_db
       dbconfig = YAML.load_file('config/database.yml')['test']
       ActiveRecord::Base.establish_connection(dbconfig.merge('database' => nil))
-      ActiveRecord::Base.connection.execute("CREATE DATABASE IF NOT EXISTS #{dbconfig['database']}")
+      begin
+        ActiveRecord::Base.connection.create_database(dbconfig['database'])
+      rescue ActiveRecord::StatementInvalid
+        # database exists
+      end
     end
 
     def schema_digest
