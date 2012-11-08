@@ -137,8 +137,13 @@ module RailsParallel
       end
     end
 
+    def get_schema_files
+      return @@schema_files.call if @@schema_files.kind_of?(Proc)
+      @@schema_files
+    end
+
     def schema_digest
-      files = FileList[*@@schema_files].sort
+      files = FileList[*get_schema_files].sort
       digest = Digest::MD5.new
       files.each { |f| digest.update("#{f}|#{File.read(f)}|") }
       digest.hexdigest
