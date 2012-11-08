@@ -27,6 +27,9 @@ module RailsParallel
 
     SCHEMA_DIR = 'tmp/rails_parallel/schema'
 
+    mattr_accessor :schema_files
+    @@schema_files = ['db/schema.rb']
+
     def self.launch
       instance.launch
     end
@@ -135,7 +138,7 @@ module RailsParallel
     end
 
     def schema_digest
-      files = FileList['db/schema.versioned.rb', 'db/migrate/*.rb'].sort
+      files = FileList[*@@schema_files].sort
       digest = Digest::MD5.new
       files.each { |f| digest.update("#{f}|#{File.read(f)}|") }
       digest.hexdigest
