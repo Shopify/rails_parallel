@@ -223,8 +223,10 @@ module RailsParallel
         raise 'mysqldump failed' unless $?.success?
         raise 'No schema dumped' unless file.size > 0
 
+        check_schema(file)
+
+        file.close
         File.rename(file.path, schema)
-        $schema_dump_file = nil
 
         invoke_task('db:drop', :force)
 
@@ -237,6 +239,14 @@ module RailsParallel
       task = ::Rake::Task[name]
       task.reenable if force
       task.invoke
+    end
+
+    def check_schema(fh)
+      fh.seek(0, IO::SEEK_SET)
+      schema = fh.read
+
+      raise "No schema_migrations table found in dump" unless schema.include?("CREATE TABLE `schema_migrations`")
+      raise "Dump appears to be incomplete" unless schema.include?("\n-- Dump completed on ")
     end
   end
 end
