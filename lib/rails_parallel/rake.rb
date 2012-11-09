@@ -172,13 +172,25 @@ module RailsParallel
     end
 
     def silently
-      File.open('/dev/null', 'w') do |fh|
-        $stdout = $stderr = fh unless ::Rake.application.options.trace
-        yield
+      return yield if ::Rake.application.options.trace
+
+      [$stdout, $stderr].each(&:flush)
+      old_stdout, old_stderr = $stdout, $stderr
+
+      Tempfile.open('rp-silently') do |fh|
+        fh.unlink
+        begin
+          $stdout = $stderr = fh
+          yield
+        rescue StandardError => e
+          fh.seek(0, IO::SEEK_SET)
+          old_stdout.puts fh.read
+          raise e
+        ensure
+          $stdout = old_stdout
+          $stderr = old_stderr
+        end
       end
-    ensure
-      $stdout = STDOUT
-      $stderr = STDERR
     end
 
     def generate_schema(digest, schema)
