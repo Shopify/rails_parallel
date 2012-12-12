@@ -6,6 +6,8 @@ def rp_master_status(msg)
 end
 
 begin
+  start = Time.now
+
   rp_master_status 'loading RailsParallel'
   puts 'RP: Loading RailsParallel.'
   $LOAD_PATH << 'lib'
@@ -20,6 +22,9 @@ begin
   require "#{ENV['RAILS_PARALLEL_ROOT']}/config/environment"
 
   RailsParallel::Runner.launch(socket, __FILE__)
+
+  elapsed = Time.now - start
+  puts "RP: Finished in #{'%.1f' % elapsed} seconds."
   puts 'RP: Shutting down.'
   Kernel.exit!(0)
 rescue Interrupt, SignalException
