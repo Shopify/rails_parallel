@@ -8,4 +8,27 @@ module RailsParallel
   def self.redis=(r)
     @@redis = r
   end
+
+  def self.number_of_workers
+    workers = number_of_cores
+    workers -= 1 if workers > 4 # reserve one core for DB
+    workers
+  end
+
+  def self.number_of_cores
+    if RUBY_PLATFORM =~ /linux/
+      cores = File.read('/proc/cpuinfo').split("\n\n").map do |data|
+        values = data.split("\n").map { |line| line.split(/\s*:/, 2) }
+        Hash[*values.flatten]
+      end
+
+      if cores.first['flags'].include?('hypervisor')
+        cores.first['siblings'].to_i
+      else
+        cores.map {|c| [c['physical id'], c['core id']] }.uniq.count
+      end
+    elsif RUBY_PLATFORM =~ /darwin/
+      `/usr/sbin/sysctl -n hw.physicalcpu`.to_i
+    end
+  end
 end

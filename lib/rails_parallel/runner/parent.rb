@@ -29,7 +29,7 @@ module RailsParallel
         @name    = params[:name]
         @options = params[:options]
         @files   = params[:files]
-        @max_children = number_of_workers
+        @max_children = RailsParallel.number_of_workers
 
         @timings = Timings.new
 
@@ -222,29 +222,6 @@ module RailsParallel
 
       def status(msg)
         $0 = "rails_parallel/parent: #{msg}"
-      end
-
-      def number_of_workers
-        workers = number_of_cores
-        workers -= 1 if workers > 4 # reserve one core for DB
-        workers
-      end
-
-      def number_of_cores
-        if RUBY_PLATFORM =~ /linux/
-          cores = File.read('/proc/cpuinfo').split("\n\n").map do |data|
-            values = data.split("\n").map { |line| line.split(/\s*:/, 2) }
-            Hash[*values.flatten]
-          end
-
-          if cores.first['flags'].include?('hypervisor')
-            cores.first['siblings'].to_i
-          else
-            cores.map {|c| [c['physical id'], c['core id']] }.uniq.count
-          end
-        elsif RUBY_PLATFORM =~ /darwin/
-          `/usr/sbin/sysctl -n hw.physicalcpu`.to_i
-        end
       end
     end
   end
