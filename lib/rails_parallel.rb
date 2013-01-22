@@ -29,6 +29,8 @@ module RailsParallel
       end
     elsif RUBY_PLATFORM =~ /darwin/
       `/usr/sbin/sysctl -n hw.physicalcpu`.to_i
+    else
+      raise "Cannot determine number of cores"
     end
   end
 end
