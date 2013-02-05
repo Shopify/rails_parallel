@@ -10,6 +10,9 @@ module RailsParallel
   end
 
   def self.number_of_workers
+    workers = ENV['RAILS_PARALLEL_WORKERS'].to_i
+    return workers if workers > 0
+
     workers = number_of_cores
     workers -= 1 if workers > 4 # reserve one core for DB
     workers
