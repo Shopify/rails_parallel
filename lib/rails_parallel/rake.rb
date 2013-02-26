@@ -201,8 +201,13 @@ module RailsParallel
 
         config  = ActiveRecord::Base.configurations[Rails.env].with_indifferent_access
         scratch = config.merge(:database => config[:database] + '_rp_scratch')
-
         ActiveRecord::Base.configurations[Rails.env] = scratch
+
+        # Workaround for Rails 3.2 insisting on dropping the test DB when we db:drop.
+        # The runner process may die because the test DB is gone.
+        old_test_config = ActiveRecord::Base.configurations['test']
+        ActiveRecord::Base.configurations['test'] = nil
+
         invoke_task('db:drop', :force)
         invoke_task('db:create', :force)
         invoke_task('parallel:db:setup', :force)
@@ -231,6 +236,7 @@ module RailsParallel
         invoke_task('db:drop', :force)
 
         ActiveRecord::Base.configurations[Rails.env] = config
+        ActiveRecord::Base.configurations['test'] = old_test_config
         ActiveRecord::Base.establish_connection(config)
       end
     end
