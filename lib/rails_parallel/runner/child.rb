@@ -86,14 +86,6 @@ module RailsParallel
             raise e
           end
 
-          #faults = runner.faults.map do |fault|
-            #if fault.kind_of?(Test::Unit::Error)
-              #Test::Unit::Error.new(fault.test_name, SafeException.new(fault.exception))
-            #else
-              #fault
-            #end
-          #end
-          #@socket << [obj, runner, faults] << :ready
           @socket << [obj, runner] << :ready
         end
 
