@@ -1,15 +1,7 @@
 require 'rails_parallel/object_socket'
 require 'rails_parallel/runner/test_runner'
 require 'rails_parallel/safe_exception'
-require 'test/unit/testresult'
-
-class Test::Unit::TestResult
-  def make_errors_safe!
-    @errors = @errors.map do |e|
-      Test::Unit::Error.new(e.test_name, RailsParallel::SafeException.new(e.exception))
-    end
-  end
-end
+require 'minitest/unit'
 
 module RailsParallel
   class Runner
@@ -86,24 +78,23 @@ module RailsParallel
           $0 = "rails_parallel/worker: #{obj}"
           ($rp_suites ||= []) << obj
           suite = @collector.suite_for(obj)
-          runner = TestRunner.new(suite)
+          runner = TestRunner.new
           begin
-            runner.start
+            runner.test_count, runner.assertion_count = runner._run_suite(suite, :test)
           rescue Exception => e
             $stderr.puts "\nRP: Test suite error while running #{obj}."
             raise e
           end
 
-          faults = runner.faults.map do |fault|
-            if fault.kind_of?(Test::Unit::Error)
-              Test::Unit::Error.new(fault.test_name, SafeException.new(fault.exception))
-            else
-              fault
-            end
-          end
-
-          runner.result.make_errors_safe!
-          @socket << [obj, runner.result, faults] << :ready
+          #faults = runner.faults.map do |fault|
+            #if fault.kind_of?(Test::Unit::Error)
+              #Test::Unit::Error.new(fault.test_name, SafeException.new(fault.exception))
+            #else
+              #fault
+            #end
+          #end
+          #@socket << [obj, runner, faults] << :ready
+          @socket << [obj, runner] << :ready
         end
 
         @socket << :finished

@@ -19,7 +19,7 @@ Gem::Specification.new do |s|
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_paths = ["lib"]
 
-  s.add_dependency 'test-unit', '~> 1.2.3'
+  s.add_dependency 'minitest', '~> 4.3.2'
   s.add_dependency 'redis', '~> 3.0.0'
   s.add_dependency 'rails', '~> 3.0'
   s.add_dependency 'rake',  '~> 0.9.2'
