@@ -1,6 +1,5 @@
 require 'rails_parallel/object_socket'
 require 'rails_parallel/runner/test_runner'
-require 'rails_parallel/safe_exception'
 require 'minitest/unit'
 
 module RailsParallel
