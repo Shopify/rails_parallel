@@ -128,7 +128,7 @@ module RailsParallel
     end
 
     def create_test_db
-      dbconfig = YAML.load_file('config/database.yml')['test']
+      dbconfig = Rails.application.config.database_configuration["test"]
       ActiveRecord::Base.establish_connection(dbconfig.merge('database' => nil))
       begin
         ActiveRecord::Base.connection.create_database(dbconfig['database'])
