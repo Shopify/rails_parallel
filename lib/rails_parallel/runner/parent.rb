@@ -6,17 +6,6 @@ require 'rails_parallel/stats'
 require 'rails_parallel/runner/child'
 require 'rails_parallel/runner/test_runner'
 
-class Test::Unit::TestResult
-  attr_reader :failures, :errors
-
-  def append(other)
-    @run_count += other.run_count
-    @assertion_count += other.assertion_count
-    @failures  += other.failures
-    @errors    += other.errors
-  end
-end
-
 module RailsParallel
   class Runner
     class Parent
@@ -39,7 +28,7 @@ module RailsParallel
         @by_socket  = {}
         @close_wait = []
 
-        @result = Test::Unit::TestResult.new
+        @result = TestRunner.new
         @faults = {}
       end
 
@@ -151,12 +140,12 @@ module RailsParallel
                 when :finished
                   close_child(child)
                 else
-                  suite, result, faults = packet
+                  suite, result = packet
                   @result.append(result)
-                  @faults[suite] = faults
+                  @faults[suite] = result.report
                   @collector.complete(suite)
 
-                  if result.run_count > 0
+                  if result.test_count > 0
                     duration = Time.now - child.last_time
                     @timings.record(@name, child.last_suite, duration)
                     @stats.add(child.number, child.last_suite, duration)
@@ -202,11 +191,7 @@ module RailsParallel
       end
 
       def output_result(elapsed)
-        runner = TestRunner.new(nil, Test::Unit::UI::NORMAL)
-        runner.result = @result
-        runner.faults = @faults.sort.map(&:last).flatten(1)
-
-        runner.output_report(elapsed)
+        @result.output_report(elapsed)
       end
 
       def success?

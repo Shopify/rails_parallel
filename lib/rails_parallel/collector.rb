@@ -1,23 +1,20 @@
-require 'test/unit/collector'
-
 module RailsParallel
   class Collector
-    include Test::Unit::Collector
 
     NAME = 'collected from the ObjectSpace'
 
     def prepare(timings, test_name)
       @suites = {}
       ::ObjectSpace.each_object(Class) do |klass|
-        @suites[klass.name] = klass.suite if Test::Unit::TestCase > klass
+        @suites[klass.name] = klass if MiniTest::Unit::TestCase > klass
       end
 
       @times = {}
       @pending = @suites.keys.sort_by do |name|
         time = @times[name] = timings.fetch(test_name, name)
         [
-          0 - time,               # runtime, descending
-          0 - @suites[name].size, # no. of tests, descending
+          0 - time,                            # runtime, descending
+          0 - @suites[name].test_methods.size, # no. of tests, descending
           name
         ]
       end
