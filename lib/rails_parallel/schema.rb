@@ -28,10 +28,14 @@ module RailsParallel
 
     def load_db(number)
       update_db_config(number)
-      return false if schema_loaded?
 
-      schema_load
-      true
+      @shard_entries.each do |shard_name|
+        schema_load(@dbconfig[shard_name]['database'], Rails.root + @dbconfig[shard_name]['schema'])
+      end
+
+      schema_load(@dbconfig['database'], @file)
+    ensure
+      reconnect
     end
 
     private
@@ -45,18 +49,28 @@ module RailsParallel
     def update_db_config(number)
       config = ActiveRecord::Base.configurations[Rails.env]
       config['database'] += "_#{number}" unless number == 1
+
+      @shard_entries = config.keys.grep(/shard/)
+
+      @shard_entries.each do |shard_name|
+        config[shard_name]['database'] += "_#{number}" unless number == 1
+      end
+
       @dbconfig = config.with_indifferent_access
     end
 
-    def schema_load
-      dbname = @dbconfig[:database]
+    def schema_load(dbname, schema)
+      hash = Digest::MD5.file(schema).hexdigest
+
+      return false if schema_loaded?(dbname, hash)
+
       mysql_args = ['-u', 'root']
 
       connection = reconnect(:database => nil)
       connection.drop_database(dbname) rescue nil
       connection.create_database(dbname)
 
-      File.open(@file) do |fh|
+      File.open(schema) do |fh|
         pid = fork do
           STDIN.reopen(fh)
           exec(*['mysql', mysql_args, dbname].flatten)
@@ -64,19 +78,20 @@ module RailsParallel
         wait_for(pid)
       end
 
-      reconnect
+      reconnect(:database => dbname)
       sm_table = ActiveRecord::Migrator.schema_migrations_table_name
-      ActiveRecord::Base.connection.execute("INSERT INTO #{sm_table} (version) VALUES ('#{@file}')")
+
+      ActiveRecord::Base.connection.execute("INSERT INTO #{sm_table} (version) VALUES ('#{hash}')")
+      true
     end
 
-    def schema_loaded?
-      reconnect
-
+    def schema_loaded?(dbname, hash)
+      reconnect(:database => dbname)
       sm_table = ActiveRecord::Migrator.schema_migrations_table_name
       migrated = ActiveRecord::Base.connection.select_values("SELECT version FROM #{sm_table}")
-      migrated.include?(@file)
+      migrated.include?(hash)
     rescue
-      return false
+      false
     end
   end
 end
