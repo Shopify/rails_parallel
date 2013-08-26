@@ -110,8 +110,8 @@ module RailsParallel
     end
 
     private
-    def shard_names
-      @shard_names ||= ActiveRecord::Base.configurations['test'].keys.grep(/shard_(\d+)$/).each_with_object([]) do |s, names|
+    def load_shard_names(config)
+      @shard_names ||= config.keys.grep(/shard_(\d+)$/).each_with_object([]) do |s, names|
         names[s.match(/shard_(\d+)$/)[1].to_i] = s
       end
     end
@@ -213,7 +213,7 @@ module RailsParallel
     def generate_schema(digest)
       invoke_task('db:create', :force)
       invoke_task('environment')
-      shard_names
+
       config  = ActiveRecord::Base.configurations[Rails.env].with_indifferent_access
       scratch = config.merge(:database => config[:database] + '_rp_scratch')
       ActiveRecord::Base.configurations[Rails.env] = scratch
@@ -229,7 +229,8 @@ module RailsParallel
 
       schema_path_hash = {}
       FileUtils.mkdir_p(SCHEMA_DIR)
-      shard_names.each do |shard|
+      load_shard_names(old_test_config)
+      @shard_names.each do |shard|
         
         shard_config = shard.nil? ? scratch : scratch[shard]
         schema = shard.nil? ? "#{SCHEMA_DIR}/#{digest}.sql" : "#{SCHEMA_DIR}/#{shard}_#{digest}.sql"
