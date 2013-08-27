@@ -4,8 +4,8 @@ module RailsParallel
   class Schema
     include Forks
 
-    def initialize(files)
-      @files = files
+    def initialize(file)
+      @file = file
     end
 
     def load_main_db
@@ -30,10 +30,10 @@ module RailsParallel
       update_db_config(number)
 
       @shard_entries.each do |shard_name|
-        schema_load(@dbconfig[shard_name]['database'], @files[shard_name])
+        schema_load(@dbconfig[shard_name]['database'], Rails.root + @dbconfig[shard_name]['schema'])
       end
 
-      schema_load(@dbconfig['database'], @files["master"])
+      schema_load(@dbconfig['database'], @file)
     ensure
       reconnect
     end
@@ -50,7 +50,7 @@ module RailsParallel
       config = ActiveRecord::Base.configurations[Rails.env]
       config['database'] += "_#{number}" unless number == 1
 
-      @shard_entries = config.keys.grep(/shard_\d+$/)
+      @shard_entries = config.keys.grep(/shard/)
 
       @shard_entries.each do |shard_name|
         config[shard_name]['database'] += "_#{number}" unless number == 1
