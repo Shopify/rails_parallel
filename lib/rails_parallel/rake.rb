@@ -110,8 +110,8 @@ module RailsParallel
     end
 
     private
-    def load_shard_names(config)
-      @shard_names ||= config.keys.grep(/shard_(\d+)$/).each_with_object([]) do |s, names|
+    def load_shard_names
+      @shard_names ||= YAML.load(ERB.new(File.read("config/database.yml")).result)['test'].keys.grep(/shard_(\d+)$/).each_with_object([]) do |s, names|
         names[s.match(/shard_(\d+)$/)[1].to_i] = s
       end
     end
@@ -159,6 +159,8 @@ module RailsParallel
     end
 
     def make_schema_file
+      load_shard_names
+
       digest   = schema_digest
       basename = "#{digest}.sql"
       schema   = "#{SCHEMA_DIR}/#{basename}"
@@ -177,15 +179,13 @@ module RailsParallel
     end
 
     def cached_schema_exists?(digest)
-      ["#{SCHEMA_DIR}/#{digest}.sql",
-       "#{SCHEMA_DIR}/shard_1_#{digest}.sql",
-       "#{SCHEMA_DIR}/shard_2_#{digest}.sql"].all? {|s| File.exists?(s)}
+      @shard_names.map do |shard|
+        shard.nil? ? "#{SCHEMA_DIR}/#{digest}.sql" : "#{SCHEMA_DIR}/#{shard}_#{digest}.sql"
+      end.all? {|s| File.exists?(s)}
     end
 
     def path_hash_for(digest)
-      {"master"=>"#{SCHEMA_DIR}/#{digest}.sql",
-       "shard_1"=>"#{SCHEMA_DIR}/shard_1_#{digest}.sql",
-       "shard_2"=>"#{SCHEMA_DIR}/shard_2_#{digest}.sql"}
+      Hash[@shard_names.map {|d| d.nil? ? ["master", "#{SCHEMA_DIR}/#{digest}.sql"] : [d, "#{SCHEMA_DIR}/#{d}_#{digest}.sql"] }]
     end
 
     def silently
@@ -229,7 +229,6 @@ module RailsParallel
 
       schema_path_hash = {}
       FileUtils.mkdir_p(SCHEMA_DIR)
-      load_shard_names(old_test_config)
       @shard_names.each do |shard|
         
         shard_config = shard.nil? ? scratch : scratch[shard]
