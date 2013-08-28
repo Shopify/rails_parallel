@@ -26,6 +26,7 @@ module RailsParallel
     include ::Rake::DSL
 
     SCHEMA_DIR = 'tmp/rails_parallel/schema'
+    SHARD_PATTERN = /shard_(\d+)$/.freeze
 
     mattr_accessor :schema_files
     @@schema_files = ['db/schema.rb']
@@ -110,6 +111,11 @@ module RailsParallel
     end
 
     private
+    def load_shard_names
+      @shard_names ||= YAML.load(ERB.new(File.read("config/database.yml")).result)['test'].keys.grep(SHARD_PATTERN).each_with_object([]) do |s, names|
+        names[s.match(SHARD_PATTERN)[1].to_i] = s
+      end
+    end
 
     def expect(want)
       got = @socket.next_object
@@ -154,21 +160,33 @@ module RailsParallel
     end
 
     def make_schema_file
+      load_shard_names
+
       digest   = schema_digest
       basename = "#{digest}.sql"
       schema   = "#{SCHEMA_DIR}/#{basename}"
 
-      if File.exist? schema
-        puts "RP: Using cached schema: #{basename}"
+      if cached_schema_exists?(digest)
+        puts "RP: Using cached schema"
+        schema_path_hash = path_hash_for(digest)
       else
         puts 'RP: Building new schema ... '
 
-        silently { generate_schema(digest, schema) }
+        schema_path_hash = silently { generate_schema(digest) }
 
-        puts "RP: Generated new schema: #{basename}"
+        puts "RP: Generated new schema"
       end
+      schema_path_hash
+    end
 
-      schema
+    def cached_schema_exists?(digest)
+      @shard_names.map do |shard|
+        shard.nil? ? "#{SCHEMA_DIR}/#{digest}.sql" : "#{SCHEMA_DIR}/#{shard}_#{digest}.sql"
+      end.all? {|s| File.exists?(s)}
+    end
+
+    def path_hash_for(digest)
+      Hash[@shard_names.map {|d| d.nil? ? ["master", "#{SCHEMA_DIR}/#{digest}.sql"] : [d, "#{SCHEMA_DIR}/#{d}_#{digest}.sql"] }]
     end
 
     def silently
@@ -193,52 +211,61 @@ module RailsParallel
       end
     end
 
-    def generate_schema(digest, schema)
+    def generate_schema(digest)
+      invoke_task('db:create', :force)
+      invoke_task('environment')
+
+      config  = ActiveRecord::Base.configurations[Rails.env].with_indifferent_access
+      scratch = config.merge(:database => config[:database] + '_rp_scratch')
+      ActiveRecord::Base.configurations[Rails.env] = scratch
+
+      # Workaround for Rails 3.2 insisting on dropping the test DB when we db:drop.
+      # The runner process may die because the test DB is gone.
+      old_test_config = ActiveRecord::Base.configurations['test']
+      ActiveRecord::Base.configurations['test'] = nil
+
+      invoke_task('db:drop', :force)
+      invoke_task('db:create', :force)
+      invoke_task('parallel:db:setup', :force)  
+
+      schema_path_hash = {}
       FileUtils.mkdir_p(SCHEMA_DIR)
-      Tempfile.open(["#{digest}.", ".sql"], SCHEMA_DIR) do |file|
-        invoke_task('db:create', :force)
-        invoke_task('environment')
+      @shard_names.each do |shard|
+        
+        shard_config = shard.nil? ? scratch : scratch[shard]
+        schema = shard.nil? ? "#{SCHEMA_DIR}/#{digest}.sql" : "#{SCHEMA_DIR}/#{shard}_#{digest}.sql"
+        schema_path_hash[shard.nil? ? "master" : shard] = schema
 
-        config  = ActiveRecord::Base.configurations[Rails.env].with_indifferent_access
-        scratch = config.merge(:database => config[:database] + '_rp_scratch')
-        ActiveRecord::Base.configurations[Rails.env] = scratch
+        Tempfile.open(["#{digest}.", ".sql"], SCHEMA_DIR) do |file|
+          command = ['mysqldump', '--no-data']
+          command << "--host=#{shard_config[:host]}"         unless shard_config[:host].blank?
+          command << "--user=#{shard_config[:username]}"     unless shard_config[:username].blank?
+          command += "--password=#{shard_config[:password]}" unless shard_config[:password].blank?
+          command << shard_config[:database]
 
-        # Workaround for Rails 3.2 insisting on dropping the test DB when we db:drop.
-        # The runner process may die because the test DB is gone.
-        old_test_config = ActiveRecord::Base.configurations['test']
-        ActiveRecord::Base.configurations['test'] = nil
+          pid = fork do
+            STDOUT.reopen(file)
+            exec *command
+            raise 'exec failed'
+          end
 
-        invoke_task('db:drop', :force)
-        invoke_task('db:create', :force)
-        invoke_task('parallel:db:setup', :force)
+          Process.wait(pid)
+          raise 'mysqldump failed' unless $?.success?
+          raise 'No schema dumped' unless file.size > 0
 
-        command = ['mysqldump', '--no-data']
-        command << "--host=#{scratch[:host]}"         unless scratch[:host].blank?
-        command << "--user=#{scratch[:username]}"     unless scratch[:username].blank?
-        command += "--password=#{scratch[:password]}" unless scratch[:password].blank?
-        command << scratch[:database]
+          check_schema(file)
 
-        pid = fork do
-          STDOUT.reopen(file)
-          exec *command
-          raise 'exec failed'
+          file.close
+          File.rename(file.path, schema)
         end
-
-        Process.wait(pid)
-        raise 'mysqldump failed' unless $?.success?
-        raise 'No schema dumped' unless file.size > 0
-
-        check_schema(file)
-
-        file.close
-        File.rename(file.path, schema)
-
-        invoke_task('db:drop', :force)
-
-        ActiveRecord::Base.configurations[Rails.env] = config
-        ActiveRecord::Base.configurations['test'] = old_test_config
-        ActiveRecord::Base.establish_connection(config)
       end
+      
+      invoke_task('db:drop', :force)
+
+      ActiveRecord::Base.configurations[Rails.env] = config
+      ActiveRecord::Base.configurations['test'] = old_test_config
+      ActiveRecord::Base.establish_connection(config)
+      schema_path_hash
     end
 
     def invoke_task(name, force = false)
