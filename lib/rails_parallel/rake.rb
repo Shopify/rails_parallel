@@ -26,6 +26,7 @@ module RailsParallel
     include ::Rake::DSL
 
     SCHEMA_DIR = 'tmp/rails_parallel/schema'
+    SHARD_PATTERN = /shard_(\d+)$/.freeze
 
     mattr_accessor :schema_files
     @@schema_files = ['db/schema.rb']
@@ -111,8 +112,8 @@ module RailsParallel
 
     private
     def load_shard_names
-      @shard_names ||= YAML.load(ERB.new(File.read("config/database.yml")).result)['test'].keys.grep(/shard_(\d+)$/).each_with_object([]) do |s, names|
-        names[s.match(/shard_(\d+)$/)[1].to_i] = s
+      @shard_names ||= YAML.load(ERB.new(File.read("config/database.yml")).result)['test'].keys.grep(SHARD_PATTERN).each_with_object([]) do |s, names|
+        names[s.match(SHARD_PATTERN)[1].to_i] = s
       end
     end
 
