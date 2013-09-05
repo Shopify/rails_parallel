@@ -211,12 +211,21 @@ module RailsParallel
       end
     end
 
+    def make_config_use_scratch_database(config)
+      config = config.with_indifferent_access
+      config.merge(:database => config[:database] + '_rp_scratch')
+    end
+
     def generate_schema(digest)
       invoke_task('db:create', :force)
       invoke_task('environment')
 
-      config  = ActiveRecord::Base.configurations[Rails.env].with_indifferent_access
-      scratch = config.merge(:database => config[:database] + '_rp_scratch')
+      config  = ActiveRecord::Base.configurations[Rails.env].deep_dup
+      scratch = make_config_use_scratch_database(config)
+      scratch.keys.grep(SHARD_PATTERN).each do |key|
+        scratch[key] = make_config_use_scratch_database(scratch[key])
+      end
+
       ActiveRecord::Base.configurations[Rails.env] = scratch
 
       # Workaround for Rails 3.2 insisting on dropping the test DB when we db:drop.
@@ -226,12 +235,12 @@ module RailsParallel
 
       invoke_task('db:drop', :force)
       invoke_task('db:create', :force)
-      invoke_task('parallel:db:setup', :force)  
+      invoke_task('parallel:db:setup', :force)
 
       schema_path_hash = {}
       FileUtils.mkdir_p(SCHEMA_DIR)
       @shard_names.each do |shard|
-        
+
         shard_config = shard.nil? ? scratch : scratch[shard]
         schema = shard.nil? ? "#{SCHEMA_DIR}/#{digest}.sql" : "#{SCHEMA_DIR}/#{shard}_#{digest}.sql"
         schema_path_hash[shard.nil? ? "master" : shard] = schema
