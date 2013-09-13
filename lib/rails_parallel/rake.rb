@@ -218,6 +218,9 @@ module RailsParallel
 
     def generate_schema(digest)
       invoke_task('environment')
+      # This guy is here because db:load_config is a dependency
+      # of db:create, as we change the config in a few lines bellow
+      # running db:create would clobber the config changes.
       invoke_task('db:load_config')
 
       config  = ActiveRecord::Base.configurations[Rails.env].deep_dup
