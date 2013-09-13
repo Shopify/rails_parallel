@@ -217,8 +217,11 @@ module RailsParallel
     end
 
     def generate_schema(digest)
-      invoke_task('db:create', :force)
       invoke_task('environment')
+      # This guy is here because db:load_config is a dependency
+      # of db:create, as we change the config in a few lines bellow
+      # running db:create would clobber the config changes.
+      invoke_task('db:load_config')
 
       config  = ActiveRecord::Base.configurations[Rails.env].deep_dup
       scratch = make_config_use_scratch_database(config)
@@ -233,9 +236,9 @@ module RailsParallel
       old_test_config = ActiveRecord::Base.configurations['test']
       ActiveRecord::Base.configurations['test'] = nil
 
-      invoke_task('db:drop', :force)
-      invoke_task('db:create', :force)
-      invoke_task('parallel:db:setup', :force)
+      invoke_task('db:drop')
+      invoke_task('db:create')
+      invoke_task('parallel:db:setup')
 
       schema_path_hash = {}
       FileUtils.mkdir_p(SCHEMA_DIR)
@@ -268,7 +271,7 @@ module RailsParallel
           File.rename(file.path, schema)
         end
       end
-      
+
       invoke_task('db:drop', :force)
 
       ActiveRecord::Base.configurations[Rails.env] = config
