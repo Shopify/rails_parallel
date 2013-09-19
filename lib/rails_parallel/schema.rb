@@ -81,14 +81,22 @@ module RailsParallel
       reconnect(:database => dbname)
       sm_table = ActiveRecord::Migrator.schema_migrations_table_name
 
-      ActiveRecord::Base.connection.execute("INSERT INTO #{sm_table} (version) VALUES ('#{hash}')")
+      ActiveRecord::Base.send(query_connection_method).execute("INSERT INTO #{sm_table} (version) VALUES ('#{hash}')")
       true
+    end
+
+    def query_connection_method
+      if ActiveRecord::Base.respond_to?(:connection_without_model_check) 
+        :connection_without_model_check
+      else
+        :connection
+      end
     end
 
     def schema_loaded?(dbname, hash)
       reconnect(:database => dbname)
       sm_table = ActiveRecord::Migrator.schema_migrations_table_name
-      migrated = ActiveRecord::Base.connection.select_values("SELECT version FROM #{sm_table}")
+      migrated = ActiveRecord::Base.send(query_connection_method).select_values("SELECT version FROM #{sm_table}")
       migrated.include?(hash)
     rescue
       false
