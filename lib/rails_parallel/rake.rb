@@ -222,8 +222,8 @@ module RailsParallel
           scratch[key] = config[key]
         end
         if SHARD_PATTERN =~ key
-          m = scratch[key] = config[key]#.merge(database:
-          m.merge!(database: m[:database] + '_rp_scratch')
+          m = scratch[key] = config[key]
+          m[:database] += '_rp_scratch'
         end
       end
       scratch
