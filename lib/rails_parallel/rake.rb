@@ -213,7 +213,36 @@ module RailsParallel
 
     def make_config_use_scratch_database(config)
       config = config.with_indifferent_access
-      config.merge(:database => config[:database] + '_rp_scratch')
+      scratch = {}.with_indifferent_access
+      config.keys.each do |key|
+        if 'database' == key
+          scratch[key] = config[key] + '_rp_scratch'
+        end
+        if %w(adapter host encoding port username password).include?(key)
+          scratch[key] = config[key]
+        end
+        if SHARD_PATTERN =~ key
+          m = scratch[key] = config[key]#.merge(database:
+          m.merge!(database: m[:database] + '_rp_scratch')
+        end
+      end
+      scratch
+    end
+
+    def drop_database(config)
+      puts "RP: dropping.. #{config[:database]}"
+      ActiveRecord::Base.connection.drop_database(config[:database])
+    rescue
+      puts "#{config[:database]} not exists"
+    end
+
+    def drop_all(config)
+      drop_database(config)
+      config.each_value do |sub_config|
+        next unless sub_config.is_a?(Hash)
+        next unless sub_config[:database]
+        drop_database(sub_config)
+      end
     end
 
     def generate_schema(digest)
@@ -223,12 +252,8 @@ module RailsParallel
       # running db:create would clobber the config changes.
       invoke_task('db:load_config')
 
-      config  = ActiveRecord::Base.configurations[Rails.env].deep_dup
+      config = ActiveRecord::Base.configurations[Rails.env].deep_dup
       scratch = make_config_use_scratch_database(config)
-      scratch.keys.grep(SHARD_PATTERN).each do |key|
-        scratch[key] = make_config_use_scratch_database(scratch[key])
-      end
-
       ActiveRecord::Base.configurations[Rails.env] = scratch
 
       # Workaround for Rails 3.2 insisting on dropping the test DB when we db:drop.
@@ -236,7 +261,7 @@ module RailsParallel
       old_test_config = ActiveRecord::Base.configurations['test']
       ActiveRecord::Base.configurations['test'] = nil
 
-      invoke_task('db:drop')
+      drop_all(scratch)
       invoke_task('db:create')
       invoke_task('parallel:db:setup')
 
@@ -272,7 +297,7 @@ module RailsParallel
         end
       end
 
-      invoke_task('db:drop', :force)
+      drop_all(scratch)
 
       ActiveRecord::Base.configurations[Rails.env] = config
       ActiveRecord::Base.configurations['test'] = old_test_config
@@ -280,9 +305,8 @@ module RailsParallel
       schema_path_hash
     end
 
-    def invoke_task(name, force = false)
+    def invoke_task(name)
       task = ::Rake::Task[name]
-      task.reenable if force
       task.invoke
     end
 
