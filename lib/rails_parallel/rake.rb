@@ -239,9 +239,7 @@ module RailsParallel
     def drop_all(config)
       drop_database(config)
       config.each_value do |sub_config|
-        next unless sub_config.is_a?(Hash)
-        next unless sub_config[:database]
-        drop_database(sub_config)
+        drop_database(sub_config) if sub_config.is_a?(Hash) && sub_config[:database]
       end
     end
 
