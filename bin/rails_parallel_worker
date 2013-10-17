@@ -8,6 +8,22 @@ end
 begin
   start = Time.now
 
+  if ENV['COVERAGE']
+    require 'simplecov'
+
+    coverage_dir = ENV['COVERAGE_DIR']
+    if coverage_dir
+      SimpleCov.coverage_dir(coverage_dir)
+      puts "RP: SimpleCov output directory set to #{coverage_dir}."
+    end
+
+    SimpleCov.start 'rails' do
+      SimpleCov.command_name "#{$$}"
+      puts "RP: SimpleCov enabled for pid=#{$$}.\n"
+    end
+
+  end
+
   rp_master_status 'loading RailsParallel'
   puts 'RP: Loading RailsParallel.'
   $LOAD_PATH << 'lib'
@@ -26,6 +42,8 @@ begin
   elapsed = Time.now - start
   puts "RP: Finished in #{'%.1f' % elapsed} seconds."
   puts 'RP: Shutting down.'
+
+  SimpleCov.result.format! if ENV['COVERAGE']
   Kernel.exit!(0)
 rescue Interrupt, SignalException
   Kernel.exit!(1)
