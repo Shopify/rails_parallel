@@ -21,6 +21,6 @@ Gem::Specification.new do |s|
 
   s.add_dependency 'minitest', '~> 4.7.4'
   s.add_dependency 'redis', '~> 3.0.0'
-  s.add_dependency 'rails', '~> 3.0'
+  s.add_dependency 'rails', '>= 3.0', '< 4.1'
   s.add_dependency 'rake',  '~> 0.9.2'
 end
