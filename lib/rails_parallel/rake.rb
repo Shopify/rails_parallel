@@ -52,13 +52,12 @@ module RailsParallel
 
       my_socket, c_socket = ObjectSocket.pair
       sock = c_socket.socket
-      sock.fcntl(Fcntl::F_SETFD, sock.fcntl(Fcntl::F_GETFD, 0) & ~Fcntl::FD_CLOEXEC)
 
       @pid = fork do
         my_socket.close
         ENV['RAILS_PARALLEL_ROOT'] = Rails.root.to_s
         script = Pathname.new(__FILE__).dirname.dirname.dirname + 'bin/rails_parallel_worker'
-        exec(script.to_s, sock.fileno.to_s)
+        exec(script.to_s, sock.fileno.to_s, sock => sock)
         raise 'exec failed'
       end
 
