@@ -162,8 +162,6 @@ module RailsParallel
       load_shard_names
 
       digest   = schema_digest
-      basename = "#{digest}.sql"
-      schema   = "#{SCHEMA_DIR}/#{basename}"
 
       if cached_schema_exists?(digest)
         puts "RP: Using cached schema"
