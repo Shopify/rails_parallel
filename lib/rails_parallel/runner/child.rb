@@ -30,6 +30,7 @@ module RailsParallel
           ::RailsParallel::Runner.run_after_fork(@number)
 
           main_loop
+          ::RailsParallel::Runner.run_before_exit(@number)
         end
 
         child_socket.close

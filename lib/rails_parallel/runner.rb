@@ -11,6 +11,7 @@ module RailsParallel
 
     @@before_fork = []
     @@after_fork = []
+    @@before_exit = []
 
     def self.before_fork(&block)
       @@before_fork << block
@@ -20,12 +21,20 @@ module RailsParallel
       @@after_fork << block
     end
 
+    def self.before_exit(&block)
+      @@before_exit << block
+    end
+
     def self.run_before_fork
       @@before_fork.each { |p| p.call }
     end
 
     def self.run_after_fork(worker_num)
       @@after_fork.each { |p| p.call(worker_num) }
+    end
+
+    def self.run_before_exit(worker_num)
+      @@before_exit.each { |p| p.call(worker_num) }
     end
 
     def initialize(socket, script)
