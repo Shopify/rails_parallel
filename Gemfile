@@ -1,4 +1,5 @@
-source "http://rubygems.org"
+source "https://rubygems.org"
 
-# Specify your gem's dependencies in rails_parallel.gemspec
-gemspec
+gem 'github-pages'
+gem 'compass', '0.12.5'
+gem 'jekyll-sitemap'
