@@ -38,4 +38,4 @@ This gem was designed as an internal project and currently makes certain assumpt
 
 ## License
 
-Copyright (c) 2012 Shopify | Released under the [MIT-LICENSE](http://opensource.org/licenses/MIT)
+Copyright (c) 2011 Shopify. Released under the [MIT-LICENSE](http://opensource.org/licenses/MIT).
